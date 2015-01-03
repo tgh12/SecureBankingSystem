@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:beans="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+
+	<beans:bean id="roleVoter"
+		class="org.springframework.security.access.vote.RoleVoter">
+		<beans:property name="rolePrefix" value=""></beans:property>
+	</beans:bean>
+
+	<beans:bean id="accessDecisionManager"
+		class="org.springframework.security.access.vote.AffirmativeBased">
+		<beans:constructor-arg name="decisionVoters"
+			ref="roleVoter" />
+	</beans:bean>
+
+	<http authentication-manager-ref="jdbc-auth"
+		access-decision-manager-ref="accessDecisionManager">
+		<intercept-url pattern="/*" requires-channel="https"/>
+		<intercept-url pattern="/admin" access="Admin" />
+		<intercept-url pattern="/admin/*" access="Admin" />
+		<intercept-url pattern="/admin/*/*" access="Admin" />
+		<intercept-url pattern="/admin/*/*/*" access="Admin" />
+		<intercept-url pattern="/employee" access="Employee" />
+		<intercept-url pattern="/employee/*" access="Employee" />
+		<intercept-url pattern="/employee/*/*" access="Employee" />
+		<intercept-url pattern="/employee/*/*/*" access="Employee" />
+		<intercept-url pattern="/user" access="User,Merchant" />
+		<intercept-url pattern="/user/payment" access="User" />
+		<intercept-url pattern="/user/requestPayment" access="Merchant" />
+		<intercept-url pattern="/user/*" access="User,Merchant" />
+		<intercept-url pattern="/user/*/*" access="User,Merchant" />
+		<intercept-url pattern="/user/*/*/*" access="User,Merchant" />
+		<form-login login-page="/login" authentication-failure-url="/denied"
+			username-parameter="emailId" password-parameter="password"
+			authentication-success-handler-ref="authSuccessHandler" />
+		<logout invalidate-session="true" logout-success-url="/login"
+			logout-url="/j_spring_security_logout" />
+		<access-denied-handler error-page="/denied" />
+		<session-management invalid-session-url="/login">
+			<concurrency-control max-sessions="1"
+				expired-url="/login" />
+		</session-management>
+	</http>
+
+	<beans:bean name="bcryptEncoder"
+		class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+
+	<authentication-manager id="jdbc-auth">
+		<authentication-provider>
+			<password-encoder ref="bcryptEncoder" />
+			<jdbc-user-service data-source-ref="dataSource"
+				users-by-username-query="select emailId,password,enabled from User where emailId = ? and enabled = 1"
+				authorities-by-username-query="select emailId,role from User where emailId = ?" />
+		</authentication-provider>
+	</authentication-manager>
+
+	<!-- MySQL DB DataSource -->
+	<beans:bean id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+
+		<beans:property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<beans:property name="url"
+			value="jdbc:mysql://localhost:3306/pitchforkbank" />
+		<beans:property name="username" value="root" />
+		<beans:property name="password" value="root" />
+
+
+	</beans:bean>
+
+	<beans:bean id="sessionFactoryBean"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<beans:property name="dataSource" ref="dataSource" />
+		<beans:property name="annotatedClasses">
+			<beans:list>
+				<beans:value>com.onlinebanking.models.Account</beans:value>
+				<beans:value>com.onlinebanking.models.Requests</beans:value>
+				<beans:value>com.onlinebanking.models.Transaction</beans:value>
+				<beans:value>com.onlinebanking.models.User</beans:value>
+				<beans:value>com.onlinebanking.models.Userotp</beans:value>
+				<beans:value>com.onlinebanking.models.UserPublicKey</beans:value>
+			</beans:list>
+		</beans:property>
+		<beans:property name="hibernateProperties">
+			<beans:props>
+				<beans:prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect
+				</beans:prop>
+				<beans:prop key="hibernate.show_sql">true</beans:prop>
+			</beans:props>
+		</beans:property>
+	</beans:bean>
+
+	<!-- DAO beans -->
+	<beans:bean id="accountHome" class="com.onlinebanking.dao.AccountHome">
+		<beans:property name="sessionFactory"
+			ref="sessionFactoryBean" />
+	</beans:bean>
+	<beans:bean id="requestsHome" class="com.onlinebanking.dao.RequestsHome">
+		<beans:property name="sessionFactory"
+			ref="sessionFactoryBean" />
+	</beans:bean>
+	<beans:bean id="transactionHome" class="com.onlinebanking.dao.TransactionHome">
+		<beans:property name="sessionFactory"
+			ref="sessionFactoryBean" />
+	</beans:bean>
+	<beans:bean id="userHome" class="com.onlinebanking.dao.UserHome">
+		<beans:property name="sessionFactory"
+			ref="sessionFactoryBean" />
+	</beans:bean>
+	<beans:bean id="userotpHome" class="com.onlinebanking.dao.UserotpHome">
+		<beans:property name="sessionFactory"
+			ref="sessionFactoryBean" />
+	</beans:bean>
+	<beans:bean id="userPublicKey" class="com.onlinebanking.dao.UserPublicKeyHome">
+		<beans:property name="sessionFactory"
+			ref="sessionFactoryBean" />
+	</beans:bean>
+
+	<!-- Service Layer -->
+	<beans:bean id="userService" class="com.onlinebanking.services.UserServiceImpl">
+		<beans:property name="userHome" ref="userHome"></beans:property>
+		<beans:property name="accountHome" ref="accountHome"></beans:property>
+		<beans:property name="userPublicKeyHome" ref="userPublicKey"></beans:property>
+		<beans:property name="requestsHome" ref="requestsHome"></beans:property>
+	</beans:bean>
+	<beans:bean id="accountService"
+		class="com.onlinebanking.services.AccountServiceImpl">
+		<beans:property name="accountHome" ref="accountHome"></beans:property>
+		<beans:property name="userHome" ref="userHome"></beans:property>
+	</beans:bean>
+	<beans:bean id="captchaService"
+		class="com.onlinebanking.services.CaptchaServiceImpl">
+	</beans:bean>
+	<beans:bean id="otpService" class="com.onlinebanking.services.OtpServiceImpl">
+		<beans:property name="userotpHome" ref="userotpHome"></beans:property>
+	</beans:bean>
+	<beans:bean id="transactionService"
+		class="com.onlinebanking.services.TransactionServiceImpl">
+		<beans:property name="transactionHome" ref="transactionHome"></beans:property>
+		<beans:property name="accountHome" ref="accountHome"></beans:property>
+		<beans:property name="requestsHome" ref="requestsHome"></beans:property>
+		<beans:property name="userHome" ref="userHome"></beans:property>
+	</beans:bean>
+
+	<!-- Transactions -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+
+	<beans:bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<beans:property name="sessionFactory"
+			ref="sessionFactoryBean" />
+	</beans:bean>
+
+	<beans:bean id="authSuccessHandler"
+		class="com.onlinebanking.controllers.AuthSuccessHandler">
+	</beans:bean>
+
+</beans:beans>
