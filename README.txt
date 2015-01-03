@@ -1,0 +1,18 @@
+SecureBankingSystem
+===================
+
+Secure Banking Software - Spring MVC Hibernate MySQL
+
+1) Download and install latest jdk.
+2) Download eclipse and extract it.
+3) Download Spring Tools Suite (STS) : http://spring.io/tools/sts and extract it.
+4) Download and install SourceTree.
+5) Clone this repository in SourceTree : https://github.com/sanketra/SBSProject and store it to a folder.
+6) Open STS with a workspace and Go to file, import project, Existing Maven Project and select the above folder.
+7) Download and extract Apache tomcat 8. Create a tomcat server in STS and add the above project.
+8) Download MySQL installer and it will guide you through the process to install My SQL on your pc(Server only).
+   Once the install is complete the MySQL server should be configured with a username and password.
+9) In STS(3) delete the existing server and add tomcat(Google it).
+10) Download and extract MySQL workbench. Launch the MySQL workbench & run all the SQL statements in file named MySql.sql
+11) In STS find the file "servlet-context.xml" & update the MySQL username and password.
+12) Build the project and run the server. Open a browser & hit http://localhost:8080/PitchForkBanking/ 
